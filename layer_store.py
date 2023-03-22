@@ -69,14 +69,15 @@ class SetLayerStore(LayerStore):
         
     
     def get_color(self, start, timestamp, x, y) -> tuple[int, int, int]:
-        r, g, b = (0, 0, 0)
         if self.layer is not None:
-            return self.layer.apply(start, timestamp, x, y)
-        elif self.special_mode == True:
-            self.layer = 
-            return self.layer.apply(start, timestamp, x, y)
+            color = self.layer.apply(start, timestamp, x, y)
         else:
-            return start
+            return start 
+
+        if self.special_mode == True:
+            color = tuple(255 - c for c in color)
+
+        return color 
 
 class AdditiveLayerStore(LayerStore):
     """
