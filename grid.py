@@ -1,6 +1,7 @@
 from __future__ import annotations
 from layer_store import SetLayerStore
 
+
 class Grid:
     DRAW_STYLE_SET = "SET"
     DRAW_STYLE_ADD = "ADD"
@@ -30,8 +31,11 @@ class Grid:
         self.width = x
         self.height = y
         self.brush_size = self.DEFAULT_BRUSH_SIZE
-        self.grid = [[SetLayerStore() for _ in range(y)] for _ in range(x)]
+        
 
+    def __getitem__(self, index):
+        return self.grid[index]
+    
     def increase_brush_size(self):
         """
         Increases the size of the brush by 1,
@@ -40,6 +44,8 @@ class Grid:
         """
         if self.brush_size < self.MAX_BRUSH:
             self.brush_size += 1
+        else:
+            pass
 
     def decrease_brush_size(self):
         """
@@ -49,16 +55,11 @@ class Grid:
         """
         if self.brush_size > self.MIN_BRUSH:
             self.brush_size -= 1
+        else:
+            pass
 
     def special(self):
         """
         Activate the special affect on all grid squares.
         """
-        for x in range(self.width):
-            for y in range(self.height):
-                if self.draw_style == self.DRAW_STYLE_SET:
-                    self.grid[x][y].clear()
-                elif self.draw_style == self.DRAW_STYLE_ADD:
-                    self.grid[x][y].add(1)
-                elif self.draw_style == self.DRAW_STYLE_SEQUENCE:
-                    self.grid[x][y].ad(x * self.height + y)
+        

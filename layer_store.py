@@ -1,7 +1,8 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from layer_util import Layer
-from queue_adt import CircularQueue
+from data_structures.queue_adt import CircularQueue
+from data_structures.set_adt import Set
 
 
 class LayerStore(ABC):
@@ -50,6 +51,7 @@ class SetLayerStore(LayerStore):
     def __init__(self):
         super().__init__()
         self.layer = None
+        self.special_mode = False
         
     def add(self, layer: Layer) -> bool:
         if layer != self.layer:
@@ -58,21 +60,23 @@ class SetLayerStore(LayerStore):
         return False
     
     def erase(self, layer: Layer) -> bool:
-        if layer == self.layer:
-            self.layer = None
-            return True
-        return False
+        self.layer = None
+        return True
+        
     
     def special(self):
-        if self.layer is not None:
-            r, g, b = self.layer.get_color(0, 0, 0, 0)
-            self.layer = Layer(lambda r2, g2, b2: (255-r2, 255-g2, 255-b2))
+        self.special_mode = not self.special_mode
+        
     
     def get_color(self, start, timestamp, x, y) -> tuple[int, int, int]:
+        r, g, b = (0, 0, 0)
         if self.layer is not None:
-            return self.layer.get_color(start, timestamp, x, y)
+            return self.layer.apply(start, timestamp, x, y)
+        elif self.special_mode == True:
+            self.layer = 
+            return self.layer.apply(start, timestamp, x, y)
         else:
-            return (255, 255, 255)
+            return start
 
 class AdditiveLayerStore(LayerStore):
     """
@@ -83,27 +87,36 @@ class AdditiveLayerStore(LayerStore):
     """
     def __init__(self, max_layers: int) -> None:
         super().__init__()
-        self.max_layers = max_layers
-        self.layers = CircularQueue(max_layers)
+        self.layers = CircularQueue(capacity)
     
     def add(self, layer: Layer) -> bool:
-        if len(self.layers) >= self.max_layers:
+        if self.layers.is_full():
             return False
         self.layers.append(layer)
         return True
     
     def get_color(self, start, timestamp, x, y) -> tuple[int, int, int]:
-        color = (255, 255, 255)
+        r, g, b, a = 0, 0, 0, 0
+
         for layer in self.layers:
-            color =  layer.get_color(start, timestamp, x, y, color)
-        return color
+            if layer.start <= start and layer.end >= timestamp:
+                pixel = layer.get_pixel(start, timestamp, x, y)
+                r += pixel[0]
+                g += pixel[1]
+                b += pixel[2]
+                a += pixel[3]
+
+        if a == 0:
+            return 0, 0, 0
+        else:
+            r, g, b = r // a, g // a, b // a
+            return r, g, b
     
     def erase(self, layer: Layer) -> bool:
-        if layer == self.layers.serve():
-            return True
-        else:
-            self.layers.remove(layer)
+        if self.layers.is_empty():
             return False
+        layer == self.layers.serve()
+        return True
         
     def special(self):
         layers = []
@@ -135,18 +148,15 @@ class SequenceLayerStore(LayerStore):
             return False
 
     def get_color(self, start, timestamp, x, y) -> tuple[int, int, int]:
-        color = start.color
-        for layer in self.layers:
+        color = start
+        for layer in self.applied_layers:
             if layer.name in self.applied_layers:
                 color = layer.apply(start, timestamp, x, y, color)
         return color
 
     def erase(self, layer: Layer) -> bool:
-        if layer.name in self.applied_layers:
-            self.applied_layers.remove(layer.name)
-            return True
-        else:
-            return False
+        self.applied_layers.remove(layer.name)
+        return True
 
     def special(self):
         median_name = sorted(self.applied_layers)[len(self.applied_layers) // 2]
